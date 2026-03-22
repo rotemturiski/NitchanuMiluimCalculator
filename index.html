@@ -30,7 +30,7 @@ body {
 .brand-header { padding: 24px 0 12px; text-align: center; }
 .brand-sub { font-size: 14px; font-weight: 600; color: #64816e; margin-bottom: 2px; letter-spacing: .02em; }
 .brand-name { font-size: 32px; font-weight: 900; letter-spacing: -.5px; line-height: 1.1; background: linear-gradient(135deg, #112a1c 0%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 10px; }
-.brand-hero-img { width: 180px; height: auto; display: block; margin: 0 auto; border-radius: 14px; }
+.brand-hero-img { width: 400px; max-width: 90%; height: auto; display: block; margin: 0 auto; border-radius: 14px; }
 .brand-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 999px; background: linear-gradient(135deg, #112a1c, #174028); color: #34d399; margin-top: 12px; letter-spacing: .03em; }
 
 /* SECTION */
@@ -171,6 +171,13 @@ body {
 .t-sm { width: 8px; height: 5px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(0.5px, -1px); display: none; }
 .paid-chk.on .t-sm { display: block; }
 .paid-lbl { font-size: 11.5px; font-weight: 600; color: #64816e; }
+.tl-monthly{margin:-4px 0 8px 36px;padding:10px 14px;background:#f0faf4;border-radius:10px;border:1px solid #d1fae5;font-size:12px;direction:rtl}
+.tl-mo-title{font-weight:700;color:#112a1c;margin-bottom:6px;font-size:11px}
+.tl-mo-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.tl-mo-name{flex:1;font-weight:600}
+.tl-mo-days{color:#64816e;font-size:11px}
+.tl-mo-amt{font-weight:700;color:#10b981;min-width:60px;text-align:left}
+.tl-mo-total{display:flex;justify-content:space-between;border-top:1px solid #d1fae5;margin-top:6px;padding-top:6px;font-weight:700;color:#112a1c}
 
 /* CHECKLIST */
 .chk-w { background: #fff; border-radius: 24px; border: 1px solid rgba(17, 42, 28, 0.05); overflow: hidden; margin-bottom: 16px; box-shadow: 0 8px 30px rgba(17, 42, 28, 0.04); }
@@ -263,7 +270,7 @@ body {
 @media (min-width: 600px){
   body { background: #e8ede9; }
   .root { max-width: 600px; padding: 40px 24px 80px; background: #f4f7f4; border-radius: 32px; margin-top: 40px; margin-bottom: 40px; box-shadow: 0 20px 60px rgba(17,42,28,0.08); }
-  .brand-hero-img { width: 200px; border-radius: 16px; }
+  .brand-hero-img { width: 400px; border-radius: 16px; }
   .hero { padding: 32px 28px; }
   .hero-amt { font-size: 56px; }
   .chip { padding: 16px; }
@@ -513,6 +520,31 @@ function baseNet(days){
   const gross=paidDays(days)*r*(PROF.employ==='slf'?1.25:1);
   // ניכויי ביטוח לאומי + בריאות + מס ~ 12%
   return Math.round(gross*0.88);
+}
+
+const HEB_MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+function getMonthlyBreakdown(yr0){
+  let ranges=[];
+  if(yr0.periods&&yr0.periods.length){
+    yr0.periods.forEach(p=>{if(p.from&&p.to) ranges.push({from:new Date(p.from),to:new Date(p.to)});});
+  } else if(yr0.from&&yr0.to){
+    ranges.push({from:new Date(yr0.from),to:new Date(yr0.to)});
+  }
+  if(!ranges.length) return null;
+  const md={};
+  ranges.forEach(r=>{
+    let cur=new Date(r.from);
+    while(cur<=r.to){
+      const key=cur.getFullYear()+'-'+cur.getMonth();
+      md[key]=(md[key]||0)+1;
+      cur.setDate(cur.getDate()+1);
+    }
+  });
+  const arr=Object.entries(md).map(([key,days])=>{
+    const [y,m]=key.split('-').map(Number);
+    return {year:y,month:m,monthName:HEB_MONTHS[m],days,amount:baseNet(days)};
+  }).sort((a,b)=>a.year-b.year||a.month-b.month);
+  return arr;
 }
 
 function calcYear(yr,totalDays,tr,p){
@@ -1473,6 +1505,23 @@ function render(){
       ?(isEmp?'שולם דרך המעסיק · '+year:'שולם ע"י ביטוח לאומי · '+year)
       :(isEmp?'1 לחודש · דרך המעסיק':'1 לחודש · הגשה לביטוח לאומי');
     tlh+=tlRow('base_'+year,bLabel,bWhen,true,false,base,null,bPaid);
+    const months=getMonthlyBreakdown(yr0);
+    if(months&&months.length>=2){
+      tlh+=`<div class="tl-monthly"><div class="tl-mo-title">פירוט תשלום חודשי</div>`;
+      months.forEach(m=>{
+        const mKey='base_'+year+'_'+(m.month+1);
+        const mPaid=PAID[mKey];
+        tlh+=`<div class="tl-mo-row">
+          <div style="cursor:pointer" onclick="event.stopPropagation();togglePaid('${mKey}')">
+            <div class="paid-chk${mPaid?' on':''}"><div class="t-sm"></div></div>
+          </div>
+          <span class="tl-mo-name">${m.monthName} ${m.year}</span>
+          <span class="tl-mo-days">${m.days} ימים</span>
+          <span class="tl-mo-amt">${fmt(m.amount)}</span>
+        </div>`;
+      });
+      tlh+=`<div class="tl-mo-total"><span>סה"כ</span><span>${fmt(base)}</span></div></div>`;
+    }
     items.forEach(i=>{
       if(i.locked){tlh+=tlRow(i.key,i.name,i.when,i.auto,true,0,null,false);}
       else{
