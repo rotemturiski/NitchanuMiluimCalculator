@@ -687,14 +687,13 @@ function getManualItems(){
         amt:Math.max(300,Math.round((totalDays/30)*300)),dead:null,year,
         missed:isPast&&!CHECKED['road6_'+year]});
     }
-    // תיקוני בית — חד פעמי, בעל משפחה, 8+ ימים
-    const hasFam=FAM.partner||FAM.kids14>0||FAM.kids16>0;
-    if(hasFam&&totalDays>=8&&year===CUR_YEAR){
+    // תיקוני בית — חד פעמי, 8+ ימים
+    if(totalDays>=8&&year===CUR_YEAR){
       const fixAmt=['aplus','a'].includes(tr)?1500:500;
       all.push({key:'homefix_'+year,name:'החזר תיקוני בית',
         when:'קרן הסיוע · "מענה שוטף לכלכלת הבית" + קבלות',
         amt:fixAmt,dead:null,year,
-        note:'חד פעמי · לוחמים ₪1,500 / אחרים ₪500'});
+        note:'חד פעמי · לוחמים ₪1,500 / אחרים ₪500 · יש לוודא זכאות'});
     }
     if(FAM.student&&year>=FAM.student_since&&totalDays>=50){
       const dead='30.9.'+year;
