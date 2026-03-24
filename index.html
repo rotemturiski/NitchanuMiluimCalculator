@@ -503,7 +503,7 @@ let PAID={}, CHECKED={};
 
 let POLICY = null;
 const POLICY_FALLBACK={
-  2026:{fD1:{aplus:30,a:30,b:20,c:0},fD31:{aplus:80,a:80,b:50,c:0},fMax:{aplus:5000,a:5000,b:3500,c:0},fT:10,expT:40,expD:{aplus:155,a:130,b:100,c:70},specT:61,specD:{aplus:133,a:113,b:86,c:60},kitT:45,kit:{aplus:1250,a:1250,b:1000,c:0},vT:45,vAmt:{aplus:2630,a:2200,b:1500,c:0},vAmtKids:{aplus:4500,a:3500,b:2200,c:0},famT:40,famD:{aplus:83,a:70,b:52,c:21},idT:[5,10,15,20,37],idA:{aplus:[466,1452,2904,4356,5808],a:[466,1452,2904,4356,5808],b:[300,900,1800,2700,3600],c:[150,450,900,1350,1800]}},
+  2026:{fD1:{aplus:45,a:40,b:30,c:0},fD31:{aplus:120,a:100,b:80,c:0},fD46:{aplus:70,a:60,b:45,c:0},fMax:{aplus:5000,a:4250,b:3250,c:0},fT:10,expT:40,expD:{aplus:46,a:39,b:31,c:31},specT:61,specD:{aplus:133,a:113,b:86,c:60},kitT:45,kit:{aplus:1250,a:1065,b:815,c:0},vT:45,vAmt:{aplus:3500,a:2950,b:2300,c:1050},vAmtKids:{aplus:4500,a:3900,b:3000,c:1350},famT:40,famD:{aplus:83,a:71,b:60,c:60},idT:[5,10,15,20,37],idA:{aplus:[466,1452,2904,4356,5808],a:[466,1452,2904,4356,5808],b:[300,900,1800,2700,3600],c:[150,450,900,1350,1800]}},
   2025:{fD1:{aplus:30,a:30,b:20,c:0},fD31:{aplus:80,a:80,b:50,c:0},fMax:{aplus:5000,a:5000,b:3000,c:0},fT:10,expT:40,expS:30,expD:{aplus:46.6,a:46.6,b:31,c:26.6},specT:61,specD:{aplus:133,a:133,b:60,c:40},kitT:45,kit:{aplus:2500,a:2500,b:1250,c:1250},vT:60,vAmt:{aplus:3500,a:3500,b:1050,c:1050},vAmtKids:{aplus:4500,a:4500,b:1350,c:1350},famT:40,famS:30,famD:{aplus:83.3,a:83.3,b:60,c:50},idT:[5,10,15,20,37],idA:{aplus:[466,1452,2904,4356,5808],a:[466,1452,2904,4356,5808],b:[300,900,1800,2700,3600],c:[150,450,900,1350,1800]}},
   2024:{fD1:{aplus:0,a:0,b:0,c:0},fD31:{aplus:0,a:0,b:0,c:0},fMax:{aplus:0,a:0,b:0,c:0},fT:999,expT:40,expD:{aplus:133,a:100,b:75,c:50},specT:32,specD:{aplus:133,a:133,b:133,c:133},kitT:20,kit:{aplus:1250,a:1250,b:1250,c:1250},vT:60,vAmt:{aplus:1500,a:1500,b:1500,c:1500},vAmtKids:{aplus:3000,a:3000,b:3000,c:3000},famT:40,famD:{aplus:83,a:70,b:52,c:21},idT:[5,10,15,20,37],idA:{aplus:[466,1452,2904,4356,5808],a:[466,1452,2904,4356,5808],b:[300,900,1800,2700,3600],c:[150,450,900,1350,1800]}},
   2023:{fD1:{aplus:0,a:0,b:0,c:0},fD31:{aplus:0,a:0,b:0,c:0},fMax:{aplus:0,a:0,b:0,c:0},fT:999,expT:40,expD:{aplus:133,a:100,b:75,c:50},specT:32,specD:{aplus:133,a:133,b:133,c:133},kitT:20,kit:{aplus:1250,a:1250,b:1250,c:1250},vT:60,vAmt:{aplus:1500,a:1500,b:1500,c:1500},vAmtKids:{aplus:3000,a:3000,b:3000,c:3000},famT:40,famD:{aplus:83,a:70,b:52,c:21},idT:[5,10,15,20,37],idA:{aplus:[466,1452,2904,4356,5808],a:[466,1452,2904,4356,5808],b:[300,900,1800,2700,3600],c:[150,450,900,1350,1800]}},
@@ -560,7 +560,8 @@ function calcYear(yr,totalDays,tr,p){
   const now=new Date();
   // fayter
   if(p.fMax[tr]>0&&totalDays>=p.fT){
-    const a=Math.min(Math.min(totalDays,30)*p.fD1[tr]+Math.max(0,totalDays-30)*p.fD31[tr],p.fMax[tr]);
+    const fRate46=p.fD46?p.fD46[tr]:p.fD31[tr];
+    const a=Math.min(Math.min(totalDays,30)*p.fD1[tr]+Math.max(0,Math.min(totalDays,45)-30)*p.fD31[tr]+Math.max(0,totalDays-45)*fRate46,p.fMax[tr]);
     if(a>0) items.push({key:'fayter_'+yr,name:'ארנק פייטר',
       when:isPast?'נטען במהלך השירות':'שוטף · נטען לארנק דיגיטלי',auto:true,amt:a,isPaid:isPast});
   }
@@ -701,9 +702,10 @@ function getManualItems(){
     }
     if(FAM.student&&year>=FAM.student_since&&totalDays>=50){
       const dead='30.9.'+year;
+      const tuitionByTier={aplus:11653,a:9905,b:7574,c:3496};
       all.push({key:'tuition_'+year,name:'סיוע שכ"ל',
         when:isPast?'קרן הסיוע — בדוק אם ניצלת':'קרן הסיוע · אישור סטודנט + קבלות',
-        amt:3000,dead,year,expired:isExpired(dead),missed:isPast&&!CHECKED['tuition_'+year]});
+        amt:tuitionByTier[tr]||3000,dead,year,expired:isExpired(dead),missed:isPast&&!CHECKED['tuition_'+year]});
     }
     if(FAM.special&&year>=FAM.special_since&&totalDays>=45)
       all.push({key:'special_'+year,name:'מענק ילד עם צרכים מיוחדים',
