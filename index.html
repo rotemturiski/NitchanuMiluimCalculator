@@ -397,6 +397,7 @@ body {
     </div>
   </div>
   <div id="since-cmd" style="display:none;padding:0 14px 8px"></div>
+  <div id="rank-cmd" style="display:none;padding:0 14px 8px"></div>
   <div class="sec-row">
     <span class="rl">סטודנט פעיל<small>אוניברסיטה/מכללה</small></span>
     <div class="toggle-wrap">
@@ -494,7 +495,7 @@ let FAM={
   kids16:0, kids16_since:2026,
   partner:false, partner_since:2026,
   special:false, special_since:2026,
-  cmd:false, cmd_since:2026,
+  cmd:false, cmd_since:2026, cmd_rank:'mm',
   student:false, student_since:2026,
   move:false, move_since:2026,
 };
@@ -627,9 +628,9 @@ function calcYear(yr,totalDays,tr,p){
   if(FAM.cmd&&yr>=FAM.cmd_since&&yr===CUR_YEAR){
     const cmdThresh=(FAM.student&&CUR_YEAR>=FAM.student_since)?40:54;
     if(totalDays>=cmdThresh&&['aplus','a'].includes(tr)){
+      const cmdAmt={mm:5000,mf:10000,mgd:20000}[FAM.cmd_rank]||5000;
       items.push({key:'cmd_'+yr,name:'מענק מפקדים',
-        when:'הגשה דרך מופת',auto:false,amt:5000,dead:null,
-        note:'מ"מ: ₪5K · מ"פ: ₪10K · סמג"ד: ₪10K · מג"ד: ₪20K'});
+        when:'הגשה דרך מופת',auto:false,amt:cmdAmt,dead:null});
     }
   }
   // locked milestones
@@ -715,9 +716,11 @@ function getManualItems(){
         when:'קרן הסיוע + קבלות',amt:2500,dead:null,year});
     if(FAM.cmd&&year>=FAM.cmd_since&&year===CUR_YEAR){
       const cmdT=(FAM.student&&CUR_YEAR>=FAM.student_since)?40:54;
-      if(totalDays>=cmdT&&['aplus','a'].includes(tr))
+      if(totalDays>=cmdT&&['aplus','a'].includes(tr)){
+        const cmdAmt={mm:5000,mf:10000,mgd:20000}[FAM.cmd_rank]||5000;
         all.push({key:'cmd_'+year,name:'מענק מפקדים',when:'מופת',
-          amt:5000,dead:null,year,note:'סכום לפי דרגת פיקוד'});
+          amt:cmdAmt,dead:null,year});
+      }
     }
     if(FAM.kids14>0&&year>=FAM.kids14_since&&totalDays>=20)
       all.push({key:'kitanet_'+year,name:'קייטנות לילדים',when:'קרן הסיוע',
@@ -1339,6 +1342,14 @@ function sinceUI(k){
     yrs.map(y=>`<button onclick="event.stopPropagation();setSince('${k}',${y})" style="font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid #ddd;background:${y===s?'#1a1a1a':'#f7f7f7'};color:${y===s?'#fff':'#888'};cursor:pointer">${y}</button>`).join('')+
     '</div>';
 }
+function cmdRankUI(){
+  const ranks=[{id:'mm',label:'מ"מ / סמ"פ'},{id:'mf',label:'מ"פ / סמג"ד'},{id:'mgd',label:'מג"ד'}];
+  return '<div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap">'+
+    '<span style="font-size:10px;color:#aaa;margin-left:4px;line-height:20px">דרגה:</span>'+
+    ranks.map(r=>`<button onclick="event.stopPropagation();setCmdRank('${r.id}')" style="font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid #ddd;background:${r.id===FAM.cmd_rank?'#1a1a1a':'#f7f7f7'};color:${r.id===FAM.cmd_rank?'#fff':'#888'};cursor:pointer">${r.label}</button>`).join('')+
+    '</div>';
+}
+function setCmdRank(r){FAM.cmd_rank=r;const el=document.getElementById('rank-cmd');if(el)el.innerHTML=cmdRankUI();render();}
 function toggleF(k){
   FAM[k]=!FAM[k];
   const el=document.getElementById('tg-'+k);
@@ -1347,6 +1358,7 @@ function toggleF(k){
   tv.textContent=FAM[k]?'כן':'לא';
   const sr=document.getElementById('since-'+k);
   if(sr){sr.style.display=FAM[k]?'block':'none';if(FAM[k])sr.innerHTML=sinceUI(k);}
+  if(k==='cmd'){const rk=document.getElementById('rank-cmd');if(rk){rk.style.display=FAM.cmd?'block':'none';if(FAM.cmd)rk.innerHTML=cmdRankUI();}}
   render();
 }
 function addYear(){
@@ -1676,6 +1688,7 @@ function syncUI() {
     tg.className = 'toggle' + (FAM[k] ? ' on' : '');
     tv.textContent = FAM[k] ? 'כן' : 'לא';
     if(sr2) { sr2.style.display = FAM[k] ? 'block' : 'none'; if(FAM[k]) sr2.innerHTML = sinceUI(k); }
+    if(k==='cmd'){const rk=document.getElementById('rank-cmd');if(rk){rk.style.display=FAM.cmd?'block':'none';if(FAM.cmd)rk.innerHTML=cmdRankUI();}}
   });
 }
 
@@ -1704,6 +1717,7 @@ function loadState() {
     FAM.student_since = parseInt(p.get('stus')) || 2026;
     FAM.cmd       = p.get('cmd') === '1';
     FAM.cmd_since = parseInt(p.get('cmds')) || 2026;
+    FAM.cmd_rank  = p.get('cmdr') || 'mm';
     FAM.special   = p.get('spc') === '1';
     FAM.move      = p.get('mov') === '1';
     const yrs = p.get('yrs');
@@ -1735,7 +1749,7 @@ function buildShareURL() {
     `&k14=${FAM.kids14}&k14s=${FAM.kids14_since}` +
     `&k16=${FAM.kids16}` +
     `&stu=${FAM.student?1:0}&stus=${FAM.student_since}` +
-    `&cmd=${FAM.cmd?1:0}&cmds=${FAM.cmd_since}` +
+    `&cmd=${FAM.cmd?1:0}&cmds=${FAM.cmd_since}&cmdr=${FAM.cmd_rank||'mm'}` +
     `&spc=${FAM.special?1:0}` +
     `&mov=${FAM.move?1:0}` +
     `&yrs=${yrs}`;
