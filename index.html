@@ -500,12 +500,16 @@ body {
         <input type="number" id="sim-sal" style="width:90px;padding:6px;border-radius:8px;border:1px solid #e2e8e4;font-size:14px;font-weight:700" oninput="calcSim()"/>
       </div>
     </div>
+    <div id="sim-norm-row" style="display:flex;justify-content:space-between;align-items:center">
+      <label style="font-size:13px;font-weight:600;color:#64816e;line-height:1.2">ימי עבודה רגילים בחודש<br><small style="font-weight:400;font-size:11px">כמה ימים היית אמור לעבוד</small></label>
+      <input type="number" id="sim-norm" value="22" min="1" max="31" step="1" style="width:65px;padding:6px;text-align:center;border-radius:8px;border:1px solid #e2e8e4;font-size:14px;font-weight:700" oninput="calcSim()"/>
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center">
       <label style="font-size:13px;font-weight:600;color:#64816e;line-height:1.2">ימי מילואים החודש<br><small style="font-weight:400;font-size:11px">כולל סופ"ש שעשית</small></label>
       <input type="number" id="sim-mil" value="0" min="0" max="31" step="0.5" style="width:65px;padding:6px;text-align:center;border-radius:8px;border:1px solid #e2e8e4;font-size:14px;font-weight:700" oninput="calcSim()"/>
     </div>
     <div id="sim-work-row" style="display:flex;justify-content:space-between;align-items:center">
-      <label style="font-size:13px;font-weight:600;color:#64816e;line-height:1.2">ימי עבודה בפועל החודש<br><small style="font-weight:400;font-size:11px">ימים שהגעת למשרד</small></label>
+      <label style="font-size:13px;font-weight:600;color:#64816e;line-height:1.2">ימי עבודה בפועל<br><small style="font-weight:400;font-size:11px">ימים שהגעת למשרד</small></label>
       <input type="number" id="sim-work" value="0" min="0" max="31" step="0.5" style="width:65px;padding:6px;text-align:center;border-radius:8px;border:1px solid #e2e8e4;font-size:14px;font-weight:700" oninput="calcSim()"/>
     </div>
     
@@ -1520,9 +1524,11 @@ function calcSim(){
   const simSalInput = document.getElementById('sim-sal');
   const isUnemp = PROF.employ === 'unemp';
   const isSlf = PROF.employ === 'slf';
+  const isEmp = !isUnemp && !isSlf;
 
   document.getElementById('sim-sal-row').style.display = isUnemp ? 'none' : 'flex';
-  document.getElementById('sim-work-row').style.display = 'none';
+  document.getElementById('sim-norm-row').style.display = isEmp ? 'flex' : 'none';
+  document.getElementById('sim-work-row').style.display = isEmp ? 'flex' : 'none';
 
   let sal = parseFloat(simSalInput.value);
   if (isNaN(sal) || isUnemp) {
@@ -1530,6 +1536,8 @@ function calcSim(){
       if (!isUnemp) simSalInput.placeholder = sal;
   }
   const mil = parseFloat(document.getElementById('sim-mil').value) || 0;
+  const normDays = parseFloat(document.getElementById('sim-norm').value) || 22;
+  const workDays = parseFloat(document.getElementById('sim-work').value) || 0;
 
   const dailyRate = Math.min(MAX_DAY, Math.max(MIN_DAY, sal/30));
   const pd = paidDays(mil);
@@ -1537,18 +1545,16 @@ function calcSim(){
   let blGross = 0, empGross = 0, total = 0;
 
   if (isUnemp) {
-    // לא עובד — ביטוח לאומי משלם תעריף מינימום
     blGross = Math.round(pd * MIN_DAY);
     total = blGross;
   } else if (isSlf) {
-    // עצמאי — ביטוח לאומי משלם הכל + תוספת 25%
     blGross = Math.round(pd * dailyRate * 1.25);
     total = blGross;
   } else {
-    // שכיר — המעסיק משלם את מלוא המשכורת (ביטוח לאומי מחזיר לו),
-    // ובנוסף ביטוח לאומי משלם לעובד תוספת על שבתות/חגים
-    empGross = Math.round(sal);
-    blGross = Math.round(Math.max(0, (pd - mil) * dailyRate));
+    // שכיר — מעסיק משלם יחסית לימי עבודה בפועל,
+    // ביטוח לאומי משלם על ימי המילואים (כולל תוספת שבת)
+    empGross = Math.round((workDays / normDays) * sal);
+    blGross = Math.round(pd * dailyRate);
     total = empGross + blGross;
   }
 
